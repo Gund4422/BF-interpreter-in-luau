@@ -3,17 +3,34 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- GUI Setup
+-- Clear old GUIs
+for _, gui in pairs(playerGui:GetChildren()) do
+    if gui.Name == "BrainfuckGUI" then gui:Destroy() end
+end
+
+-- Main GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainfuckGUI"
-screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Background
+-- Collapsed Button
+local toggleButton = Instance.new("TextButton", screenGui)
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 50, 0, 50)
+toggleButton.Text = "💻"
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextScaled = true
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 128)
+toggleButton.BorderSizePixel = 0
+
+-- Expanded GUI Frame
 local bg = Instance.new("Frame", screenGui)
-bg.Size = UDim2.new(1,0,1,0)
-bg.BackgroundColor3 = Color3.fromRGB(25,25,30)
+bg.Size = UDim2.new(0, 700, 0, 550)
+bg.Position = UDim2.new(0, 120, 0, 50)
+bg.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 bg.BorderSizePixel = 0
+
+bg.Visible = false -- start collapsed
 
 -- Title
 local title = Instance.new("TextLabel", bg)
@@ -39,7 +56,7 @@ codeBox.TextScaled = true
 codeBox.MultiLine = true
 codeBox.BorderSizePixel = 0
 
--- Input for ','
+-- Input
 local inputBox = Instance.new("TextBox", bg)
 inputBox.Size = UDim2.new(0,600,0,50)
 inputBox.Position = UDim2.new(0,50,0,250)
@@ -107,16 +124,11 @@ local function runBrainfuck(code, input)
     local i = 1
     while i <= #code do
         local c = code:sub(i, i)
-        if c == ">" then
-            pointer += 1
-        elseif c == "<" then
-            pointer -= 1
-        elseif c == "+" then
-            tape[pointer] = (tape[pointer] + 1) % 256
-        elseif c == "-" then
-            tape[pointer] = (tape[pointer] - 1) % 256
-        elseif c == "." then
-            output ..= string.char(tape[pointer])
+        if c == ">" then pointer += 1
+        elseif c == "<" then pointer -= 1
+        elseif c == "+" then tape[pointer] = (tape[pointer] + 1) % 256
+        elseif c == "-" then tape[pointer] = (tape[pointer] - 1) % 256
+        elseif c == "." then output ..= string.char(tape[pointer])
         elseif c == "," then
             local char = input:sub(inputIndex, inputIndex)
             tape[pointer] = char:byte() or 0
@@ -130,18 +142,14 @@ local function runBrainfuck(code, input)
                     if ch == "[" then depth += 1 end
                     if ch == "]" then depth -= 1 end
                 end
-            else
-                table.insert(loopStack, i)
-            end
+            else table.insert(loopStack, i) end
         elseif c == "]" then
-            if tape[pointer] ~= 0 then
-                i = loopStack[#loopStack]
-            else
-                table.remove(loopStack)
+            if tape[pointer] ~= 0 then i = loopStack[#loopStack]
+            else table.remove(loopStack)
             end
         end
 
-        -- Update tape GUI with tween effect
+        -- Update tape GUI
         local startCell = math.max(1, pointer - 10)
         for j = 1, 20 do
             local cellIndex = startCell + j - 1
@@ -157,10 +165,15 @@ local function runBrainfuck(code, input)
     return output
 end
 
--- Run button
+-- Run Button
 runButton.MouseButton1Click:Connect(function()
     local code = codeBox.Text
     local input = inputBox.Text
     local result = runBrainfuck(code, input)
     outputLabel.Text = "Output: " .. result
+end)
+
+-- Toggle Expanded/Collapsed
+toggleButton.MouseButton1Click:Connect(function()
+    bg.Visible = not bg.Visible
 end)
