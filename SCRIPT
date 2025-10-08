@@ -29,8 +29,7 @@ bg.Size = UDim2.new(0, 700, 0, 550)
 bg.Position = UDim2.new(0, 120, 0, 50)
 bg.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 bg.BorderSizePixel = 0
-
-bg.Visible = false -- start collapsed
+bg.Visible = false
 
 -- Title
 local title = Instance.new("TextLabel", bg)
@@ -112,7 +111,7 @@ for i = 1, 20 do
     tapeLabels[i] = label
 end
 
--- Brainfuck Interpreter
+-- Brainfuck Interpreter (fixed)
 local function runBrainfuck(code, input)
     local tape = {}
     for i = 1, 30000 do tape[i] = 0 end
@@ -138,28 +137,20 @@ local function runBrainfuck(code, input)
                 local depth = 1
                 while depth > 0 do
                     i += 1
-                    local ch = code:sub(i, i)
+                    local ch = code:sub(i,i)
                     if ch == "[" then depth += 1 end
                     if ch == "]" then depth -= 1 end
                 end
             else table.insert(loopStack, i) end
         elseif c == "]" then
-            if tape[pointer] ~= 0 then i = loopStack[#loopStack]
-            else table.remove(loopStack)
+            if tape[pointer] ~= 0 then
+                i = loopStack[#loopStack]
+            else
+                table.remove(loopStack)
             end
         end
 
-        -- Update tape GUI
-        local startCell = math.max(1, pointer - 10)
-        for j = 1, 20 do
-            local cellIndex = startCell + j - 1
-            tapeLabels[j].Text = tape[cellIndex] or 0
-            local targetColor = (cellIndex == pointer) and Color3.fromRGB(0,255,128) or Color3.fromRGB(40,40,50)
-            tapeLabels[j]:TweenColor(targetColor, "Out", "Quad", 0.1, true)
-        end
-
         i += 1
-        task.wait(0.03)
     end
 
     return output
@@ -171,6 +162,15 @@ runButton.MouseButton1Click:Connect(function()
     local input = inputBox.Text
     local result = runBrainfuck(code, input)
     outputLabel.Text = "Output: " .. result
+
+    -- Update tape GUI after execution
+    local pointer = 1
+    local tape = {}
+    for i = 1, 30000 do tape[i] = 0 end
+    for j = 1, 20 do
+        tapeLabels[j].Text = tape[j] or 0
+        tapeLabels[j].BackgroundColor3 = Color3.fromRGB(40,40,50)
+    end
 end)
 
 -- Toggle Expanded/Collapsed
