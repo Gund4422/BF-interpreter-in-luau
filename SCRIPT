@@ -4,57 +4,98 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- GUI Setup
-local screenGui = Instance.new("ScreenGui", playerGui)
+local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainfuckGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Background
+local bg = Instance.new("Frame", screenGui)
+bg.Size = UDim2.new(1,0,1,0)
+bg.BackgroundColor3 = Color3.fromRGB(25,25,30)
+bg.BorderSizePixel = 0
+
+-- Title
+local title = Instance.new("TextLabel", bg)
+title.Size = UDim2.new(0,400,0,50)
+title.Position = UDim2.new(0,50,0,20)
+title.Text = "💻 Brainfuck Interpreter"
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(0,255,128)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
 
 -- Code Input
-local codeBox = Instance.new("TextBox", screenGui)
-codeBox.Size = UDim2.new(0, 400, 0, 100)
-codeBox.Position = UDim2.new(0, 50, 0, 50)
+local codeBox = Instance.new("TextBox", bg)
+codeBox.Size = UDim2.new(0,600,0,150)
+codeBox.Position = UDim2.new(0,50,0,80)
 codeBox.PlaceholderText = "Enter Brainfuck code"
 codeBox.TextWrapped = true
 codeBox.ClearTextOnFocus = false
+codeBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+codeBox.TextColor3 = Color3.fromRGB(200,200,200)
+codeBox.Font = Enum.Font.Code
+codeBox.TextScaled = true
+codeBox.MultiLine = true
+codeBox.BorderSizePixel = 0
 
--- Input for ,
-local inputBox = Instance.new("TextBox", screenGui)
-inputBox.Size = UDim2.new(0, 400, 0, 50)
-inputBox.Position = UDim2.new(0, 50, 0, 160)
+-- Input for ','
+local inputBox = Instance.new("TextBox", bg)
+inputBox.Size = UDim2.new(0,600,0,50)
+inputBox.Position = UDim2.new(0,50,0,250)
 inputBox.PlaceholderText = "Input for ',' commands"
 inputBox.TextWrapped = true
 inputBox.ClearTextOnFocus = false
+inputBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
+inputBox.TextColor3 = Color3.fromRGB(200,200,200)
+inputBox.Font = Enum.Font.Code
+inputBox.TextScaled = true
+inputBox.BorderSizePixel = 0
 
 -- Output
-local outputLabel = Instance.new("TextLabel", screenGui)
-outputLabel.Size = UDim2.new(0, 400, 0, 50)
-outputLabel.Position = UDim2.new(0, 50, 0, 220)
+local outputLabel = Instance.new("TextLabel", bg)
+outputLabel.Size = UDim2.new(0,600,0,50)
+outputLabel.Position = UDim2.new(0,50,0,320)
 outputLabel.Text = "Output: "
 outputLabel.TextWrapped = true
+outputLabel.BackgroundColor3 = Color3.fromRGB(20,20,30)
+outputLabel.TextColor3 = Color3.fromRGB(0,255,128)
+outputLabel.Font = Enum.Font.Code
+outputLabel.TextScaled = true
+outputLabel.BorderSizePixel = 0
 
 -- Run Button
-local runButton = Instance.new("TextButton", screenGui)
-runButton.Size = UDim2.new(0, 100, 0, 50)
-runButton.Position = UDim2.new(0, 50, 0, 280)
-runButton.Text = "Run"
+local runButton = Instance.new("TextButton", bg)
+runButton.Size = UDim2.new(0,150,0,50)
+runButton.Position = UDim2.new(0,50,0,380)
+runButton.Text = "Run 💥"
+runButton.Font = Enum.Font.SourceSansBold
+runButton.TextColor3 = Color3.fromRGB(255,255,255)
+runButton.BackgroundColor3 = Color3.fromRGB(0,200,128)
+runButton.BorderSizePixel = 0
+runButton.AutoButtonColor = true
 
 -- Tape Visualization
-local tapeFrame = Instance.new("Frame", screenGui)
-tapeFrame.Size = UDim2.new(0, 800, 0, 50)
-tapeFrame.Position = UDim2.new(0, 50, 0, 340)
+local tapeFrame = Instance.new("Frame", bg)
+tapeFrame.Size = UDim2.new(0,800,0,50)
+tapeFrame.Position = UDim2.new(0,50,0,450)
 tapeFrame.BackgroundTransparency = 1
 
 local tapeLabels = {}
 for i = 1, 20 do
     local label = Instance.new("TextLabel", tapeFrame)
-    label.Size = UDim2.new(0, 35, 0, 50)
+    label.Size = UDim2.new(0,35,0,50)
     label.Position = UDim2.new(0, (i-1)*40, 0, 0)
     label.Text = "0"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    label.BorderSizePixel = 1
+    label.TextColor3 = Color3.fromRGB(0,255,128)
+    label.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    label.BorderSizePixel = 0
+    label.Font = Enum.Font.Code
+    label.TextScaled = true
     tapeLabels[i] = label
 end
 
--- Brainfuck Interpreter with input support
+-- Brainfuck Interpreter
 local function runBrainfuck(code, input)
     local tape = {}
     for i = 1, 30000 do tape[i] = 0 end
@@ -100,16 +141,17 @@ local function runBrainfuck(code, input)
             end
         end
 
-        -- update tape GUI
+        -- Update tape GUI with tween effect
         local startCell = math.max(1, pointer - 10)
         for j = 1, 20 do
             local cellIndex = startCell + j - 1
             tapeLabels[j].Text = tape[cellIndex] or 0
-            tapeLabels[j].BackgroundColor3 = (cellIndex == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(50,50,50)
+            local targetColor = (cellIndex == pointer) and Color3.fromRGB(0,255,128) or Color3.fromRGB(40,40,50)
+            tapeLabels[j]:TweenColor(targetColor, "Out", "Quad", 0.1, true)
         end
 
         i += 1
-        task.wait(0.05)
+        task.wait(0.03)
     end
 
     return output
