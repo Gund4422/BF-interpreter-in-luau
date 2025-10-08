@@ -13,7 +13,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainfuckGUI"
 screenGui.Parent = playerGui
 
--- Collapsed Button
+-- Collapsed Toggle Button
 local toggleButton = Instance.new("TextButton", screenGui)
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0, 50, 0, 50)
@@ -111,7 +111,7 @@ for i = 1, 20 do
     tapeLabels[i] = label
 end
 
--- Brainfuck Interpreter (fixed)
+-- Brainfuck Interpreter with live tape + delay
 local function runBrainfuck(code, input)
     local tape = {}
     for i = 1, 30000 do tape[i] = 0 end
@@ -122,14 +122,14 @@ local function runBrainfuck(code, input)
 
     local i = 1
     while i <= #code do
-        local c = code:sub(i, i)
+        local c = code:sub(i,i)
         if c == ">" then pointer += 1
         elseif c == "<" then pointer -= 1
         elseif c == "+" then tape[pointer] = (tape[pointer] + 1) % 256
         elseif c == "-" then tape[pointer] = (tape[pointer] - 1) % 256
         elseif c == "." then output ..= string.char(tape[pointer])
         elseif c == "," then
-            local char = input:sub(inputIndex, inputIndex)
+            local char = input:sub(inputIndex,inputIndex)
             tape[pointer] = char:byte() or 0
             inputIndex += 1
         elseif c == "[" then
@@ -150,30 +150,29 @@ local function runBrainfuck(code, input)
             end
         end
 
+        -- Live tape update
+        local startCell = math.max(1, pointer - 10)
+        for j = 1, 20 do
+            local idx = startCell + j - 1
+            tapeLabels[j].Text = tape[idx] or 0
+            tapeLabels[j].BackgroundColor3 = (idx == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,50)
+        end
+
         i += 1
+        task.wait(0.03) -- slow execution for visibility
     end
 
     return output
 end
 
--- Run Button
+-- Run button
 runButton.MouseButton1Click:Connect(function()
     local code = codeBox.Text
     local input = inputBox.Text
-    local result = runBrainfuck(code, input)
-    outputLabel.Text = "Output: " .. result
-
-    -- Update tape GUI after execution
-    local pointer = 1
-    local tape = {}
-    for i = 1, 30000 do tape[i] = 0 end
-    for j = 1, 20 do
-        tapeLabels[j].Text = tape[j] or 0
-        tapeLabels[j].BackgroundColor3 = Color3.fromRGB(40,40,50)
-    end
+    outputLabel.Text = "Output: " .. runBrainfuck(code, input)
 end)
 
--- Toggle Expanded/Collapsed
+-- Toggle GUI
 toggleButton.MouseButton1Click:Connect(function()
     bg.Visible = not bg.Visible
 end)
