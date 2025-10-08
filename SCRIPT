@@ -1,0 +1,124 @@
+--!strict
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "BrainfuckGUI"
+
+-- Code Input
+local codeBox = Instance.new("TextBox", screenGui)
+codeBox.Size = UDim2.new(0, 400, 0, 100)
+codeBox.Position = UDim2.new(0, 50, 0, 50)
+codeBox.PlaceholderText = "Enter Brainfuck code"
+codeBox.TextWrapped = true
+codeBox.ClearTextOnFocus = false
+
+-- Input for ,
+local inputBox = Instance.new("TextBox", screenGui)
+inputBox.Size = UDim2.new(0, 400, 0, 50)
+inputBox.Position = UDim2.new(0, 50, 0, 160)
+inputBox.PlaceholderText = "Input for ',' commands"
+inputBox.TextWrapped = true
+inputBox.ClearTextOnFocus = false
+
+-- Output
+local outputLabel = Instance.new("TextLabel", screenGui)
+outputLabel.Size = UDim2.new(0, 400, 0, 50)
+outputLabel.Position = UDim2.new(0, 50, 0, 220)
+outputLabel.Text = "Output: "
+outputLabel.TextWrapped = true
+
+-- Run Button
+local runButton = Instance.new("TextButton", screenGui)
+runButton.Size = UDim2.new(0, 100, 0, 50)
+runButton.Position = UDim2.new(0, 50, 0, 280)
+runButton.Text = "Run"
+
+-- Tape Visualization
+local tapeFrame = Instance.new("Frame", screenGui)
+tapeFrame.Size = UDim2.new(0, 800, 0, 50)
+tapeFrame.Position = UDim2.new(0, 50, 0, 340)
+tapeFrame.BackgroundTransparency = 1
+
+local tapeLabels = {}
+for i = 1, 20 do
+    local label = Instance.new("TextLabel", tapeFrame)
+    label.Size = UDim2.new(0, 35, 0, 50)
+    label.Position = UDim2.new(0, (i-1)*40, 0, 0)
+    label.Text = "0"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    label.BorderSizePixel = 1
+    tapeLabels[i] = label
+end
+
+-- Brainfuck Interpreter with input support
+local function runBrainfuck(code, input)
+    local tape = {}
+    for i = 1, 30000 do tape[i] = 0 end
+    local pointer = 1
+    local output = ""
+    local loopStack = {}
+    local inputIndex = 1
+
+    local i = 1
+    while i <= #code do
+        local c = code:sub(i, i)
+        if c == ">" then
+            pointer += 1
+        elseif c == "<" then
+            pointer -= 1
+        elseif c == "+" then
+            tape[pointer] = (tape[pointer] + 1) % 256
+        elseif c == "-" then
+            tape[pointer] = (tape[pointer] - 1) % 256
+        elseif c == "." then
+            output ..= string.char(tape[pointer])
+        elseif c == "," then
+            local char = input:sub(inputIndex, inputIndex)
+            tape[pointer] = char:byte() or 0
+            inputIndex += 1
+        elseif c == "[" then
+            if tape[pointer] == 0 then
+                local depth = 1
+                while depth > 0 do
+                    i += 1
+                    local ch = code:sub(i, i)
+                    if ch == "[" then depth += 1 end
+                    if ch == "]" then depth -= 1 end
+                end
+            else
+                table.insert(loopStack, i)
+            end
+        elseif c == "]" then
+            if tape[pointer] ~= 0 then
+                i = loopStack[#loopStack]
+            else
+                table.remove(loopStack)
+            end
+        end
+
+        -- update tape GUI
+        local startCell = math.max(1, pointer - 10)
+        for j = 1, 20 do
+            local cellIndex = startCell + j - 1
+            tapeLabels[j].Text = tape[cellIndex] or 0
+            tapeLabels[j].BackgroundColor3 = (cellIndex == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(50,50,50)
+        end
+
+        i += 1
+        task.wait(0.05)
+    end
+
+    return output
+end
+
+-- Run button
+runButton.MouseButton1Click:Connect(function()
+    local code = codeBox.Text
+    local input = inputBox.Text
+    local result = runBrainfuck(code, input)
+    outputLabel.Text = "Output: " .. result
+end)
