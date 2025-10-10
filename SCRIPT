@@ -5,7 +5,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- Clear old GUIs
 for _, gui in pairs(playerGui:GetChildren()) do
-    if gui.Name == "BrainfuckGUI" then gui:Destroy() end
+	if gui.Name == "BrainfuckGUI" then gui:Destroy() end
 end
 
 -- Main GUI
@@ -30,6 +30,38 @@ bg.Position = UDim2.new(0, 120, 0, 50)
 bg.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 bg.BorderSizePixel = 0
 bg.Visible = false
+
+-- Drag + minimize controls
+local dragging = false
+local dragOffset = Vector2.zero
+
+bg.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragOffset = Vector2.new(input.Position.X - bg.Position.X.Offset, input.Position.Y - bg.Position.Y.Offset)
+	end
+end)
+
+bg.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		bg.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
+	end
+end)
+
+local minimizeButton = Instance.new("TextButton", bg)
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -40, 0, 10)
+minimizeButton.Text = "-"
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.TextScaled = true
+minimizeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 128)
+minimizeButton.BorderSizePixel = 0
 
 -- Title
 local title = Instance.new("TextLabel", bg)
@@ -99,80 +131,87 @@ tapeFrame.BackgroundTransparency = 1
 
 local tapeLabels = {}
 for i = 1, 20 do
-    local label = Instance.new("TextLabel", tapeFrame)
-    label.Size = UDim2.new(0,35,0,50)
-    label.Position = UDim2.new(0, (i-1)*40, 0, 0)
-    label.Text = "0"
-    label.TextColor3 = Color3.fromRGB(0,255,128)
-    label.BackgroundColor3 = Color3.fromRGB(40,40,50)
-    label.BorderSizePixel = 0
-    label.Font = Enum.Font.Code
-    label.TextScaled = true
-    tapeLabels[i] = label
+	local label = Instance.new("TextLabel", tapeFrame)
+	label.Size = UDim2.new(0,35,0,50)
+	label.Position = UDim2.new(0, (i-1)*40, 0, 0)
+	label.Text = "0"
+	label.TextColor3 = Color3.fromRGB(0,255,128)
+	label.BackgroundColor3 = Color3.fromRGB(40,40,50)
+	label.BorderSizePixel = 0
+	label.Font = Enum.Font.Code
+	label.TextScaled = true
+	tapeLabels[i] = label
 end
 
--- Brainfuck Interpreter with live tape + delay
+-- Brainfuck Interpreter
 local function runBrainfuck(code, input)
-    local tape = {}
-    for i = 1, 30000 do tape[i] = 0 end
-    local pointer = 1
-    local output = ""
-    local loopStack = {}
-    local inputIndex = 1
+	local tape = table.create(30000, 0)
+	local pointer = 1
+	local output = ""
+	local loopStack = {}
+	local inputIndex = 1
 
-    local i = 1
-    while i <= #code do
-        local c = code:sub(i,i)
-        if c == ">" then pointer += 1
-        elseif c == "<" then pointer -= 1
-        elseif c == "+" then tape[pointer] = (tape[pointer] + 1) % 256
-        elseif c == "-" then tape[pointer] = (tape[pointer] - 1) % 256
-        elseif c == "." then output ..= string.char(tape[pointer])
-        elseif c == "," then
-            local char = input:sub(inputIndex,inputIndex)
-            tape[pointer] = char:byte() or 0
-            inputIndex += 1
-        elseif c == "[" then
-            if tape[pointer] == 0 then
-                local depth = 1
-                while depth > 0 do
-                    i += 1
-                    local ch = code:sub(i,i)
-                    if ch == "[" then depth += 1 end
-                    if ch == "]" then depth -= 1 end
-                end
-            else table.insert(loopStack, i) end
-        elseif c == "]" then
-            if tape[pointer] ~= 0 then
-                i = loopStack[#loopStack]
-            else
-                table.remove(loopStack)
-            end
-        end
+	local i = 1
+	while i <= #code do
+		local c = code:sub(i,i)
+		if c == ">" then pointer += 1
+		elseif c == "<" then pointer -= 1
+		elseif c == "+" then tape[pointer] = (tape[pointer] + 1) % 256
+		elseif c == "-" then tape[pointer] = (tape[pointer] - 1) % 256
+		elseif c == "." then output ..= string.char(tape[pointer])
+		elseif c == "," then
+			local char = input:sub(inputIndex,inputIndex)
+			tape[pointer] = char:byte() or 0
+			inputIndex += 1
+		elseif c == "[" then
+			if tape[pointer] == 0 then
+				local depth = 1
+				while depth > 0 do
+					i += 1
+					local ch = code:sub(i,i)
+					if ch == "[" then depth += 1 end
+					if ch == "]" then depth -= 1 end
+				end
+			else table.insert(loopStack, i) end
+		elseif c == "]" then
+			if tape[pointer] ~= 0 then
+				i = loopStack[#loopStack]
+			else
+				table.remove(loopStack)
+			end
+		end
 
-        -- Live tape update
-        local startCell = math.max(1, pointer - 10)
-        for j = 1, 20 do
-            local idx = startCell + j - 1
-            tapeLabels[j].Text = tape[idx] or 0
-            tapeLabels[j].BackgroundColor3 = (idx == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,50)
-        end
+		local startCell = math.max(1, pointer - 10)
+		for j = 1, 20 do
+			local idx = startCell + j - 1
+			tapeLabels[j].Text = tape[idx] or 0
+			tapeLabels[j].BackgroundColor3 = (idx == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,50)
+		end
 
-        i += 1
-        task.wait(0.03) -- slow execution for visibility
-    end
+		i += 1
+		task.wait(0.03)
+	end
 
-    return output
+	return output
 end
 
 -- Run button
 runButton.MouseButton1Click:Connect(function()
-    local code = codeBox.Text
-    local input = inputBox.Text
-    outputLabel.Text = "Output: " .. runBrainfuck(code, input)
+	local code = codeBox.Text
+	local input = inputBox.Text
+	outputLabel.Text = "Output: " .. runBrainfuck(code, input)
 end)
 
 -- Toggle GUI
 toggleButton.MouseButton1Click:Connect(function()
-    bg.Visible = not bg.Visible
+	bg.Visible = not bg.Visible
+end)
+
+-- Minimize button
+minimizeButton.MouseButton1Click:Connect(function()
+	for _, v in ipairs(bg:GetChildren()) do
+		if v ~= minimizeButton and v ~= title then
+			v.Visible = not v.Visible
+		end
+	end
 end)
