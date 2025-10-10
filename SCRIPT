@@ -1,5 +1,8 @@
---!strict
+--// Brainfuck IDE in Luau
+--// includes drag + minimize animation
+
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -8,210 +11,159 @@ for _, gui in pairs(playerGui:GetChildren()) do
 	if gui.Name == "BrainfuckGUI" then gui:Destroy() end
 end
 
--- Main GUI
+-- Main ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "BrainfuckGUI"
 screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
 
--- Collapsed Toggle Button
-local toggleButton = Instance.new("TextButton", screenGui)
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.Position = UDim2.new(0, 50, 0, 50)
-toggleButton.Text = "💻"
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextScaled = true
-toggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 128)
-toggleButton.BorderSizePixel = 0
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 420, 0, 320)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
 
--- Expanded GUI Frame
-local bg = Instance.new("Frame", screenGui)
-bg.Size = UDim2.new(0, 700, 0, 550)
-bg.Position = UDim2.new(0, 120, 0, 50)
-bg.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-bg.BorderSizePixel = 0
-bg.Visible = false
+-- Titlebar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
 
--- Drag + minimize controls
-local dragging = false
-local dragOffset = Vector2.zero
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -60, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Brainfuck Interpreter"
+titleLabel.Font = Enum.Font.Code
+titleLabel.TextSize = 18
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
 
-bg.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragOffset = Vector2.new(input.Position.X - bg.Position.X.Offset, input.Position.Y - bg.Position.Y.Offset)
-	end
-end)
+-- Minimize button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 30, 0, 30)
+toggleButton.Position = UDim2.new(1, -35, 0, 0)
+toggleButton.Text = "🖥️"
+toggleButton.Font = Enum.Font.Code
+toggleButton.TextSize = 20
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Parent = titleBar
 
-bg.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		bg.Position = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
-	end
-end)
-
-local minimizeButton = Instance.new("TextButton", bg)
-minimizeButton.Size = UDim2.new(0, 30, 0, 30)
-minimizeButton.Position = UDim2.new(1, -40, 0, 10)
-minimizeButton.Text = "-"
-minimizeButton.Font = Enum.Font.SourceSansBold
-minimizeButton.TextScaled = true
-minimizeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 128)
-minimizeButton.BorderSizePixel = 0
-
--- Title
-local title = Instance.new("TextLabel", bg)
-title.Size = UDim2.new(0,400,0,50)
-title.Position = UDim2.new(0,50,0,20)
-title.Text = "💻 Brainfuck Interpreter"
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(0,255,128)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-
--- Code Input
-local codeBox = Instance.new("TextBox", bg)
-codeBox.Size = UDim2.new(0,600,0,150)
-codeBox.Position = UDim2.new(0,50,0,80)
-codeBox.PlaceholderText = "Enter Brainfuck code"
-codeBox.TextWrapped = true
+-- Textbox for code
+local codeBox = Instance.new("TextBox")
+codeBox.Size = UDim2.new(1, -20, 0, 180)
+codeBox.Position = UDim2.new(0, 10, 0, 40)
+codeBox.Text = "+++++[>++++++++<-]>+.+.+."
 codeBox.ClearTextOnFocus = false
-codeBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
-codeBox.TextColor3 = Color3.fromRGB(200,200,200)
 codeBox.Font = Enum.Font.Code
-codeBox.TextScaled = true
+codeBox.TextSize = 16
+codeBox.TextColor3 = Color3.new(1, 1, 1)
+codeBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+codeBox.TextXAlignment = Enum.TextXAlignment.Left
+codeBox.TextYAlignment = Enum.TextYAlignment.Top
 codeBox.MultiLine = true
-codeBox.BorderSizePixel = 0
-
--- Input
-local inputBox = Instance.new("TextBox", bg)
-inputBox.Size = UDim2.new(0,600,0,50)
-inputBox.Position = UDim2.new(0,50,0,250)
-inputBox.PlaceholderText = "Input for ',' commands"
-inputBox.TextWrapped = true
-inputBox.ClearTextOnFocus = false
-inputBox.BackgroundColor3 = Color3.fromRGB(30,30,40)
-inputBox.TextColor3 = Color3.fromRGB(200,200,200)
-inputBox.Font = Enum.Font.Code
-inputBox.TextScaled = true
-inputBox.BorderSizePixel = 0
+codeBox.Parent = mainFrame
 
 -- Output
-local outputLabel = Instance.new("TextLabel", bg)
-outputLabel.Size = UDim2.new(0,600,0,50)
-outputLabel.Position = UDim2.new(0,50,0,320)
-outputLabel.Text = "Output: "
-outputLabel.TextWrapped = true
-outputLabel.BackgroundColor3 = Color3.fromRGB(20,20,30)
-outputLabel.TextColor3 = Color3.fromRGB(0,255,128)
-outputLabel.Font = Enum.Font.Code
-outputLabel.TextScaled = true
-outputLabel.BorderSizePixel = 0
+local outputBox = Instance.new("TextBox")
+outputBox.Size = UDim2.new(1, -20, 0, 60)
+outputBox.Position = UDim2.new(0, 10, 0, 230)
+outputBox.Text = ""
+outputBox.ClearTextOnFocus = false
+outputBox.Font = Enum.Font.Code
+outputBox.TextSize = 16
+outputBox.TextColor3 = Color3.new(0, 1, 0)
+outputBox.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+outputBox.TextXAlignment = Enum.TextXAlignment.Left
+outputBox.TextYAlignment = Enum.TextYAlignment.Top
+outputBox.MultiLine = true
+outputBox.Parent = mainFrame
 
--- Run Button
-local runButton = Instance.new("TextButton", bg)
-runButton.Size = UDim2.new(0,150,0,50)
-runButton.Position = UDim2.new(0,50,0,380)
-runButton.Text = "Run 💥"
-runButton.Font = Enum.Font.SourceSansBold
-runButton.TextColor3 = Color3.fromRGB(255,255,255)
-runButton.BackgroundColor3 = Color3.fromRGB(0,200,128)
-runButton.BorderSizePixel = 0
-runButton.AutoButtonColor = true
+-- Run button
+local runButton = Instance.new("TextButton")
+runButton.Size = UDim2.new(0, 80, 0, 25)
+runButton.Position = UDim2.new(1, -90, 1, -35)
+runButton.Text = "Run"
+runButton.Font = Enum.Font.Code
+runButton.TextSize = 16
+runButton.TextColor3 = Color3.new(1, 1, 1)
+runButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+runButton.Parent = mainFrame
 
--- Tape Visualization
-local tapeFrame = Instance.new("Frame", bg)
-tapeFrame.Size = UDim2.new(0,800,0,50)
-tapeFrame.Position = UDim2.new(0,50,0,450)
-tapeFrame.BackgroundTransparency = 1
+-- Brainfuck interpreter
+local function runBrainfuck(code)
+	local tape, pointer, output = {}, 1, ""
+	for i = 1, 30000 do tape[i] = 0 end
 
-local tapeLabels = {}
-for i = 1, 20 do
-	local label = Instance.new("TextLabel", tapeFrame)
-	label.Size = UDim2.new(0,35,0,50)
-	label.Position = UDim2.new(0, (i-1)*40, 0, 0)
-	label.Text = "0"
-	label.TextColor3 = Color3.fromRGB(0,255,128)
-	label.BackgroundColor3 = Color3.fromRGB(40,40,50)
-	label.BorderSizePixel = 0
-	label.Font = Enum.Font.Code
-	label.TextScaled = true
-	tapeLabels[i] = label
-end
-
--- Brainfuck Interpreter
-local function runBrainfuck(code, input)
-	local tape = table.create(30000, 0)
-	local pointer = 1
-	local output = ""
-	local loopStack = {}
-	local inputIndex = 1
-
-	local i = 1
-	while i <= #code do
-		local c = code:sub(i,i)
-		if c == ">" then pointer += 1
-		elseif c == "<" then pointer -= 1
-		elseif c == "+" then tape[pointer] = (tape[pointer] + 1) % 256
-		elseif c == "-" then tape[pointer] = (tape[pointer] - 1) % 256
-		elseif c == "." then output ..= string.char(tape[pointer])
-		elseif c == "," then
-			local char = input:sub(inputIndex,inputIndex)
-			tape[pointer] = char:byte() or 0
-			inputIndex += 1
+	local pc, stack = 1, {}
+	while pc <= #code do
+		local c = string.sub(code, pc, pc)
+		if c == ">" then
+			pointer += 1
+		elseif c == "<" then
+			pointer -= 1
+		elseif c == "+" then
+			tape[pointer] = (tape[pointer] + 1) % 256
+		elseif c == "-" then
+			tape[pointer] = (tape[pointer] - 1) % 256
+		elseif c == "." then
+			output ..= string.char(tape[pointer])
 		elseif c == "[" then
 			if tape[pointer] == 0 then
-				local depth = 1
-				while depth > 0 do
-					i += 1
-					local ch = code:sub(i,i)
-					if ch == "[" then depth += 1 end
-					if ch == "]" then depth -= 1 end
+				local loop = 1
+				while loop > 0 do
+					pc += 1
+					local ch = string.sub(code, pc, pc)
+					if ch == "[" then loop += 1 end
+					if ch == "]" then loop -= 1 end
 				end
-			else table.insert(loopStack, i) end
+			else
+				table.insert(stack, pc)
+			end
 		elseif c == "]" then
 			if tape[pointer] ~= 0 then
-				i = loopStack[#loopStack]
+				pc = stack[#stack]
 			else
-				table.remove(loopStack)
+				table.remove(stack)
 			end
 		end
-
-		local startCell = math.max(1, pointer - 10)
-		for j = 1, 20 do
-			local idx = startCell + j - 1
-			tapeLabels[j].Text = tape[idx] or 0
-			tapeLabels[j].BackgroundColor3 = (idx == pointer) and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,50)
-		end
-
-		i += 1
-		task.wait(0.03)
+		pc += 1
 	end
-
 	return output
 end
 
--- Run button
-runButton.MouseButton1Click:Connect(function()
-	local code = codeBox.Text
-	local input = inputBox.Text
-	outputLabel.Text = "Output: " .. runBrainfuck(code, input)
-end)
-
--- Toggle GUI
-toggleButton.MouseButton1Click:Connect(function()
-	bg.Visible = not bg.Visible
-end)
-
--- Minimize button
-minimizeButton.MouseButton1Click:Connect(function()
-	for _, v in ipairs(bg:GetChildren()) do
-		if v ~= minimizeButton and v ~= title then
-			v.Visible = not v.Visible
-		end
+-- Toggle animation
+local minimized = false
+local function toggleUI()
+	minimized = not minimized
+	if minimized then
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 1
+		}):Play()
+		task.wait(0.3)
+		mainFrame.Visible = false
+	else
+		mainFrame.Visible = true
+		mainFrame.Size = UDim2.new(0, 0, 0, 0)
+		mainFrame.BackgroundTransparency = 1
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 420, 0, 320),
+			BackgroundTransparency = 0
+		}):Play()
 	end
+end
+
+toggleButton.MouseButton1Click:Connect(toggleUI)
+
+-- Run connection
+runButton.MouseButton1Click:Connect(function()
+	outputBox.Text = runBrainfuck(codeBox.Text)
 end)
